@@ -1,55 +1,44 @@
-name: Update Repo2 and Create PR
+name: Update the file in repository2 and Submit PR
 
 on:
   push:
     branches:
-      - main  # Trigger this workflow when pushing to main in repo1
+      - main  
 
 jobs:
   update-repo2:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out repo1
       - name: Check out repo1
         uses: actions/checkout@v2
 
-      # Step 2: Check out repo2 into a subdirectory
       - name: Check out repo2
         uses: actions/checkout@v2
         with:
           repository: "sumabdamd/repo2"
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          path: repo2  # Saves repo2 into ./repo2 directory
+          path: repo2  
 
-      # Step 3: Configure Git identity
       - name: Configure Git identity
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-      # Step 4: Modify or Add a File in repo2
+
       - name: Modify or Add a File in repo2
         run: |
-          echo "New content added from repo1 workflow" > newfile.txt
-          git add newfile.txt
+          echo "New content added from repo1 workflow" > newfile1.txt
+          git add newfile1.txt
           git commit -m "Add newfile.txt via workflow from repo1"
         working-directory: repo2
 
-      # Step 5: Push changes to a new branch
-      # - name: Push changes to new branch
-      #   run: |
-      #     git checkout -b repo1-update-branch
-      #     git push origin repo1-update-branch
-      #   working-directory: repo2
-
       - name: Push changes to new branch
         run: |
-          git fetch origin repo1-update-branch || true   # fetch branch if exists, ignore errors
+          git fetch origin repo1-update-branch || true   #
           git checkout -B repo1-update-branch origin/repo1-update-branch || git checkout -b repo1-update-branch
           git push origin repo1-update-branch --force-with-lease
         working-directory: repo2
 
-      # Step 6: Create a Pull Request in repo2
       - name: Create Pull Request in Repo2
         uses: peter-evans/create-pull-request@v5
         with:
