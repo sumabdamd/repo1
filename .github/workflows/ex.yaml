@@ -1,4 +1,4 @@
-name: Update Repo2 and Create PR
+name: Update Repo2 
 
 on:
   push:
@@ -10,26 +10,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out repo1 (default)
       - name: Check out repo1
         uses: actions/checkout@v3
 
-      # Step 2: Check out repo2 using the PAT for authentication
       - name: Check out repo2
         uses: actions/checkout@v3
         with:
-          repository: sumabdamd/repo2   # replace with your repo2 path
+          repository: sumabdamd/repo2
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
           path: repo2
 
-      # Step 3: Configure Git user inside repo2
       - name: Configure Git user inside repo2
         run: |
           cd repo2
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Step 4: Modify or add a file inside repo2
       - name: Modify or Add a File in repo2
         run: |
           cd repo2
@@ -37,20 +33,24 @@ jobs:
           git add newfile.txt
           git commit -m "Add newfile.txt via workflow from repo1" || echo "No changes to commit"
 
-      # Step 5: Push changes to a new branch in repo2, handling existing remote branch
-      - name: Push changes to new branch
+      - name: Push changes to new branch with safe force push
         run: |
           cd repo2
-          git checkout -b update-file-from-repo1 || git checkout update-file-from-repo1
-          git pull --rebase origin update-file-from-repo1 || echo "No remote branch yet"
-          git push origin update-file-from-repo1
 
-      # Step 6: Create a pull request in repo2
+          if git show-ref --verify --quiet refs/remotes/origin/update-file-from-repo1; then
+            git checkout update-file-from-repo1
+            git pull --rebase origin update-file-from-repo1
+          else
+            git checkout -b update-file-from-repo1
+          fi
+
+          git push --force-with-lease origin update-file-from-repo1
+
       - name: Create Pull Request to repo2
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          repository: sumabdamd/repo2   # explicitly point to repo2
+          repository: sumabdamd/repo2
           base: main
           head: update-file-from-repo1
           title: "Update from repo1"
