@@ -36,15 +36,17 @@ jobs:
       - name: Push changes to new branch with safe force push
         run: |
           cd repo2
-
+          git fetch origin update-file-from-repo1
           if git show-ref --verify --quiet refs/remotes/origin/update-file-from-repo1; then
             git checkout update-file-from-repo1
             git pull --rebase origin update-file-from-repo1
           else
             git checkout -b update-file-from-repo1
           fi
-
           git push --force-with-lease origin update-file-from-repo1
+
+
+          
 
       - name: Create Pull Request to repo2
         uses: peter-evans/create-pull-request@v4
