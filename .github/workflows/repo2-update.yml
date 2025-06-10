@@ -33,7 +33,7 @@ jobs:
 
       - name: Push changes to new branch
         run: |
-          git fetch origin repo1-update-branch || true   #
+          git fetch origin repo1-update-branch || true   
           git checkout -B repo1-update-branch origin/repo1-update-branch || git checkout -b repo1-update-branch
           git push origin repo1-update-branch --force-with-lease
         working-directory: repo2
