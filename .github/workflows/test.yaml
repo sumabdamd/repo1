@@ -1,0 +1,45 @@
+name: Modify Repo2 and Create PR
+
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - main  # or any branch you want to trigger from
+
+jobs:
+  pr-to-repo2:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo1
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clone repo2
+        run: |
+          git clone https://github.com/sumabdamd/repo2.git
+          cd repo2
+
+          # Modify or add a file
+          echo "Hello from repo1 on $(date)" >> new-file.txt
+
+          # Commit and push changes
+          git checkout -b auto-update-$(date +%s)
+          git add .
+          git commit -m "Automated update from repo1"
+          git push origin HEAD
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+          repository: sumabdamd/repo2
+          head: auto-update-${{ github.run_id }}
+          base: main
+          title: "Automated update from repo1"
+          body: |
+            This PR was automatically created by a GitHub Actions workflow in repo1.
