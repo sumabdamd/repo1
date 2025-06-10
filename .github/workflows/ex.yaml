@@ -60,7 +60,7 @@
 
 
 
-name: Update Repo2 and Create PR
+name: Update Repo2 
 
 on:
   push:
