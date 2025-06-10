@@ -20,7 +20,7 @@ jobs:
 
       - name: Clone repo2
         run: |
-          git clone https://github.com/YOUR-ORG/REPO2.git repo2
+          git clone https://github.com/sumabdamd/repo2.git
 
       - name: Configure Git user inside repo2
         run: |
