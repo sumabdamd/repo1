@@ -20,6 +20,7 @@ jobs:
 
       - name: Configure Git identity
         run: |
+          cd repo2
           git config --local user.name 'github-actions[bot]'
           git config --local user.email 'github-actions[bot]@users.noreply.github.com'
 
