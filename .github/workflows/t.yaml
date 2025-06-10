@@ -1,9 +1,79 @@
+# name: Update Repo2
+
+# on:
+#   push:
+#     branches:
+#       - main  # Trigger on pushes to main branch of repo1
+
+# jobs:
+#   update-repo2:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       # Step 1: Check out repo1 (this repository)
+#       - name: Check out repo1
+#         uses: actions/checkout@v3
+
+#       # Step 2: Check out repo2 using access token and path
+#       - name: Check out repo2
+#         uses: actions/checkout@v3
+#         with:
+#           repository: sumabdamd/repo2   # Replace with your target repo path
+#           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+#           path: repo2
+
+#       # Step 3: Configure Git user inside repo2
+#       - name: Configure Git user inside repo2
+#         run: |
+#           cd repo2
+#           git config user.name "github-actions[bot]"
+#           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+#       # Step 4: Modify or add a file inside repo2
+#       - name: Modify or Add a File in repo2
+#         run: |
+#           cd repo2
+#           echo "New content added from repo1 workflow" > newfile.txt
+
+#       # Step 5: Commit and push changes to update-file-from-repo1 branch
+#       - name: Commit and Push Changes
+#         run: |
+#           cd repo2
+#           git fetch origin
+
+#           # Check if the branch exists remotely
+#           if git show-ref --verify --quiet refs/remotes/origin/update-file-from-repo1; then
+#             git checkout update-file-from-repo1
+#             git pull --rebase origin update-file-from-repo1
+#           else
+#             git checkout -b update-file-from-repo1
+#           fi
+
+#           # Add and commit changes
+#           git add newfile.txt
+#           git commit -m "Add newfile.txt via workflow from repo1" || echo "No changes to commit"
+
+#           # Push changes with force-with-lease for safety
+#           git push --force-with-lease origin update-file-from-repo1
+
+#       # Step 6: Create a pull request in repo2
+#       - name: Create Pull Request to repo2
+#         uses: peter-evans/create-pull-request@v4
+#         with:
+#           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+#           path: repo2
+#           base: main
+#           branch: update-file-from-repo1
+#           title: "Update from repo1"
+#           body: "This PR was created automatically by the workflow in repo1."
+
+
 name: Update Repo2
 
 on:
   push:
     branches:
-      - main  # Trigger on pushes to main branch of repo1
+      - main  # Trigger on pushes to the main branch of repo1
 
 jobs:
   update-repo2:
@@ -22,25 +92,36 @@ jobs:
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
           path: repo2
 
-      # Step 3: Configure Git user inside repo2
+      # Step 3: List files in repo2 to verify checkout
+      - name: List files in repo2
+        run: |
+          cd repo2
+          ls -la
+
+      # Step 4: Configure Git user inside repo2
       - name: Configure Git user inside repo2
         run: |
           cd repo2
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Step 4: Modify or add a file inside repo2
+      # Step 5: Modify or Add a File in repo2
       - name: Modify or Add a File in repo2
         run: |
           cd repo2
           echo "New content added from repo1 workflow" > newfile.txt
+          
+      # Step 6: Check for changes in repo2
+      - name: Check for changes
+        run: |
+          cd repo2
+          git diff --stat
 
-      # Step 5: Commit and push changes to update-file-from-repo1 branch
+      # Step 7: Commit and Push Changes
       - name: Commit and Push Changes
         run: |
           cd repo2
           git fetch origin
-
           # Check if the branch exists remotely
           if git show-ref --verify --quiet refs/remotes/origin/update-file-from-repo1; then
             git checkout update-file-from-repo1
@@ -48,15 +129,22 @@ jobs:
           else
             git checkout -b update-file-from-repo1
           fi
-
-          # Add and commit changes
+          # Show git status and check if the commit was successful
+          git status
+          git diff --stat
           git add newfile.txt
           git commit -m "Add newfile.txt via workflow from repo1" || echo "No changes to commit"
-
-          # Push changes with force-with-lease for safety
+          git log --oneline -n 5
           git push --force-with-lease origin update-file-from-repo1
 
-      # Step 6: Create a pull request in repo2
+      # Step 8: Debug the PR creation
+      - name: Debug PR creation
+        run: |
+          echo "Attempting to create pull request"
+          cd repo2
+          git log --oneline -n 5
+
+      # Step 9: Create a pull request in repo2
       - name: Create Pull Request to repo2
         uses: peter-evans/create-pull-request@v4
         with:
@@ -66,3 +154,4 @@ jobs:
           branch: update-file-from-repo1
           title: "Update from repo1"
           body: "This PR was created automatically by the workflow in repo1."
+
