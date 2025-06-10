@@ -1,5 +1,4 @@
 name: Update Repo2 and Create PR
-
 on:
   push:
     branches:
@@ -13,20 +12,26 @@ jobs:
       # Step 1: Check out repo1
       - name: Check out repo1
         uses: actions/checkout@v2
+      
+      - name: Checkout Repo2
+        uses: actions/checkout@v2
+        with:
+          repository: "sumabdamd/repo2"
+          token: ${{ secrets.REPO2_ACCESS_TOKEN }}
 
-      # Step 2: Clone repo2
-      - name: Clone repo2
-        run: |
-          git clone https://github.com/sumabdamd/repo2.git
-          cd repo2
-          git checkout main
+      # # Step 2: Clone repo2
+      # - name: Clone repo2
+      #   run: |
+      #     git clone https://github.com/sumabdamd/repo2.git
+      #     cd repo2
+      #     git checkout main
 
-      # Step 3: Configure Git identity
-      - name: Configure Git identity
-        run: |
-          cd repo2
-          git config --local user.name 'github-actions[bot]'
-          git config --local user.email 'github-actions[bot]@users.noreply.github.com'
+      # # Step 3: Configure Git identity
+      # - name: Configure Git identity
+      #   run: |
+      #     cd repo2
+      #     git config --local user.name 'github-actions[bot]'
+      #     git config --local user.email 'github-actions[bot]@users.noreply.github.com'
 
       # Step 4: Modify or Add a File in repo2
       - name: Modify or Add a File in repo2
@@ -36,19 +41,36 @@ jobs:
           git add newfile.txt
           git commit -m "Add newfile.txt via workflow from repo1"
 
-      # Step 5: Push changes to a new branch in repo2
-      - name: Push changes to new branch
-        run: |
-          cd repo2
-          git checkout -b update-file-from-repo1
-          git push origin update-file-from-repo1
+      # # Step 5: Push changes to a new branch in repo2
+      # - name: Push changes to new branch
+      #   run: |
+      #     cd repo2
+      #     git checkout -b update-file-from-repo1
+      #     git push origin update-file-from-repo1
 
-      # Step 6: Create a pull request in repo2
-      - name: Create Pull Request to repo2
-        uses: peter-evans/create-pull-request@v4
+      # # Step 6: Create a pull request in repo2
+      # - name: Create Pull Request to repo2
+      #   uses: peter-evans/create-pull-request@v4
+      #   with:
+      #     token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+      #     base: main
+      #     head: update-file-from-repo1
+      #     title: "Update from repo1"
+      #     body: "This PR was created automatically by the workflow in repo1."
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Automated update from repo1"
+          git push origin main
+
+      - name: Create Pull Request in Repo2
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          base: main
-          head: update-file-from-repo1
-          title: "Update from repo1"
-          body: "This PR was created automatically by the workflow in repo1."
+          repository: "sumabdamd/repo2"
+          title: "Automated PR from repo1"
+          body: "This PR contains changes made by repo1."
+          branch: "repo1-update-branch"
