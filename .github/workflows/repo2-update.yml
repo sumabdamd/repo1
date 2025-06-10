@@ -44,19 +44,23 @@ jobs:
             git checkout -b update-file-from-repo1
           fi
           git push --force-with-lease origin update-file-from-repo1
-
-
-          
-
       - name: Create Pull Request to repo2
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          repository: sumabdamd/repo2
           base: main
-          head: update-file-from-repo1
+          branch: update-file-from-repo1
           title: "Update from repo1"
           body: "This PR was created automatically by the workflow in repo1."
+      # - name: Create Pull Request to repo2
+      #   uses: peter-evans/create-pull-request@v4
+      #   with:
+      #     token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+      #     repository: sumabdamd/repo2
+      #     base: main
+      #     head: update-file-from-repo1
+      #     title: "Update from repo1"
+          # body: "This PR was created automatically by the workflow in repo1."
 
 
 
