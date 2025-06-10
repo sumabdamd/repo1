@@ -1,4 +1,4 @@
-name: Update the file in repository2 and Submit PR
+name: Update the file 
 on:
   push:
     branches:
