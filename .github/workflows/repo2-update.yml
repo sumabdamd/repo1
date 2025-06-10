@@ -60,7 +60,7 @@
 
 
 
-name: Update Repo2 
+name: Update Repo2 and Create PR
 
 on:
   push:
@@ -119,3 +119,4 @@ jobs:
           branch: update-file-from-repo1
           title: "Update from repo1"
           body: "This PR was created automatically by the workflow in repo1."
+
