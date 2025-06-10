@@ -24,7 +24,7 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
-            - name: Modify or Add a File in repo2
+      - name: Modify or Add a File in repo2
         run: |
           echo "New content added from repo1 workflow" > newfile1.txt
           git add newfile1.txt
