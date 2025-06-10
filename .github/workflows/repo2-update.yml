@@ -1,5 +1,4 @@
 name: Update the file in repository2 and Submit PR
-
 on:
   push:
     branches:
