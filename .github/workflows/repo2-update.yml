@@ -18,18 +18,28 @@ jobs:
       # - name: Set up Git
       #   uses: sumabdamd/setup-git@v1
 
-      - name: Configure Git identity
-        run: |
-          cd repo2
-          git config --local user.name 'github-actions[bot]'
-          git config --local user.email 'github-actions[bot]@users.noreply.github.com'
-
-      # Step 3: Clone repo2
       - name: Clone repo2
         run: |
-          git clone https://github.com/sumabdamd/repo2.git
+          git clone https://github.com/YOUR-ORG/REPO2.git repo2
+
+      - name: Configure Git user inside repo2
+        run: |
           cd repo2
-          git checkout main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # - name: Configure Git identity
+      #   run: |
+      #     cd repo2
+      #     git config --local user.name 'github-actions[bot]'
+      #     git config --local user.email 'github-actions[bot]@users.noreply.github.com'
+
+      # Step 3: Clone repo2
+      # - name: Clone repo2
+      #   run: |
+      #     git clone https://github.com/sumabdamd/repo2.git
+      #     cd repo2
+      #     git checkout main
 
       # Step 4: Make changes to repo2
       - name: Modify or Add a File in repo2
