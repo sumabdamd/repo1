@@ -1,0 +1,55 @@
+name: Create PR to Repo2
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow when code is pushed to the main branch of repo1
+  workflow_dispatch:  # You can also trigger this manually from the GitHub UI
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repo1
+      - name: Checkout Repo1
+        uses: actions/checkout@v3
+
+      # Checkout repo2
+      - name: Checkout Repo2
+        uses: actions/checkout@v3
+        with:
+          repository: sumabdmad/repo2  # Replace with your username and repo2 name
+          token: ${{ secrets.REPO2_ACCESS_TOKEN }}  # GitHub token to authenticate and access repo2
+          path: repo2
+
+      # Make changes to repo2 (e.g., modify a file or add a new file)
+      - name: Make changes to repo2
+        run: |
+          cd repo2
+          echo "This is a new file created by the workflow" > newfile.txt
+          git add newfile.txt
+          git commit -m "Add new file created by workflow"
+          
+      # Create a new branch for the PR
+      - name: Create new branch in repo2
+        run: |
+          cd repo2
+          git checkout -b update-file-branch
+
+      # Push changes to repo2
+      - name: Push changes to repo2
+        run: |
+          cd repo2
+          git push origin update-file-branch
+
+      # Create a pull request in repo2
+      - name: Create PR in Repo2
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+          repository: yourusername/repo2  # Replace with your repo2 name
+          base: main  # The branch in repo2 to merge into (e.g., 'main')
+          head: update-file-branch  # The branch you just created
+          title: "Automated PR to add new file"
+          body: "This PR adds a new file created by the workflow in repo1."
