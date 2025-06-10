@@ -1,0 +1,49 @@
+name: Update the file in repository2 and Submit PR
+on:
+  push:
+    branches:
+      - main  
+
+jobs:
+  update-repo2:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo1
+        uses: actions/checkout@v2
+
+      - name: Check out repo2
+        uses: actions/checkout@v2
+        with:
+          repository: "sumabdamd/repo2"
+          token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+          path: repo2  
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+            - name: Modify or Add a File in repo2
+        run: |
+          echo "New content added from repo1 workflow" > newfile1.txt
+          git add newfile1.txt
+          git commit -m "Add newfile.txt via workflow from repo1" || echo "No changes to commit"
+        working-directory: repo2
+
+      - name: Push changes directly to main
+        run: |
+          git push origin main
+        working-directory: repo2
+
+      - name: Create Pull Request in Repo2
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+          repository: "sumabdamd/repo2"
+          title: "Automated PR from repo1"
+          body: "This PR contains changes made by repo1."
+          branch: "main"
+          base: "main"
+          # `branch` is the source branch in repo2, `base` is the target branch for the PR
+          # Since both are main, the action will detect if PR exists or not.
