@@ -1,23 +1,21 @@
 name: Update the file in repository2 and Submit PR
+
 on:
   push:
     branches:
-      - main  
+      - main
 
 jobs:
   update-repo2:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repo1
-        uses: actions/checkout@v2
-
       - name: Check out repo2
         uses: actions/checkout@v2
         with:
           repository: "sumabdamd/repo2"
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          path: repo2  
+          path: repo2
 
       - name: Configure Git identity
         run: |
@@ -26,23 +24,23 @@ jobs:
 
       - name: Modify or Add a File in repo2
         run: |
-          echo "New content added  workflow" > newfile.txt
+          echo "New content added by workflow from repo1" > repo2/newfile.txt
+          cd repo2
           git add newfile.txt
           git commit -m "Add newfile.txt via workflow from repo1"
-        working-directory: repo2
 
-      - name: Push changes to new branch
+      - name: Push changes to new branch in repo2
         run: |
-          git fetch origin repo1-update-branch || true   
-          git checkout -B repo1-update-branch origin/repo1-update-branch || git checkout -b repo1-update-branch
+          cd repo2
+          git checkout -B repo1-update-branch
           git push origin repo1-update-branch --force-with-lease
-        working-directory: repo2
 
-      - name: Create Pull Request in Repo2
+      - name: Create Pull Request in repo2
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          repository: "sumabdamd/repo2"
+          path: repo2
           title: "Automated PR from repo1"
           body: "This PR contains changes made by repo1."
-          branch: "repo1-update-branch"
+          base: main
+          branch: repo1-update-branch
