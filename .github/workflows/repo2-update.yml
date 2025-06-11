@@ -17,20 +17,11 @@ jobs:
         with:
           repository: "sumabdamd/repo2"
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-
-      # - name: Make Changes in Repo2
-      #   run: |
-      #     echo "Updated by repo1 at $(date)" >> repo2-file.txt
-      #     touch new-file.txt
-      #     echo "This is a new file created by repo1" > new-file.txt
-
+          
       - name: Modify or Add a File in repo2
         run: |
           echo "New content added  workflow" > newfile.txt
-          # git add newfile.txt
-          # git commit -m "Add newfile.txt via workflow from repo1"
-        # working-directory: repo2
-
+        
       - name: Commit and Push Changes
         run: |
           git config --global user.name "GitHub Actions"
@@ -43,7 +34,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          repository: "akshkuma/repo2"
+          repository: "sumabdamd/repo2"
           title: "Automated PR from repo1"
           body: "This PR contains changes made by repo1."
           branch: "repo1-update-branch"
