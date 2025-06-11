@@ -1,4 +1,4 @@
-name: submit pr to rep2
+name: ubmit PR
 
 on:
   push:
@@ -24,8 +24,7 @@ jobs:
 
       - name: Modify or Add a File in repo2
         run: |
-          echo "New content added by workflow from repo1" > newfile.txt
-          mv newfile.txt repo2/
+          echo "New content added by workflow from repo1" > repo2/newfile.txt
           cd repo2
           git add newfile.txt
           git commit -m "Add newfile.txt via workflow from repo1"
@@ -33,7 +32,6 @@ jobs:
       - name: Push changes to new branch in repo2
         run: |
           cd repo2
-          git fetch origin
           git checkout -B repo1-update-branch
           git push origin repo1-update-branch --force-with-lease
 
@@ -41,8 +39,8 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          repository: "sumabdamd/repo2"
+          path: repo2
           title: "Automated PR from repo1"
           body: "This PR contains changes made by repo1."
           base: main
-          head: repo1-update-branch
+          branch: repo1-update-branch
