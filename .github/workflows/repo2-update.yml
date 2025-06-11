@@ -2,14 +2,14 @@ name: Update the file in repository2 and Submit PR
 on:
   push:
     branches:
-      - main
+      - main  
 
 jobs:
   update-repo2:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repo1 (read-only)
+      - name: Check out repo1
         uses: actions/checkout@v2
 
       - name: Check out repo2
@@ -17,7 +17,7 @@ jobs:
         with:
           repository: "sumabdamd/repo2"
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          path: repo2
+          path: repo2  
 
       - name: Configure Git identity
         run: |
@@ -26,14 +26,15 @@ jobs:
 
       - name: Modify or Add a File in repo2
         run: |
-          echo "New content added via workflow" > newfile.txt
+          echo "New content added  workflow" > newfile.txt
           git add newfile.txt
-          git commit -m "Add newfile.txt via workflow from repo1" || echo "No changes to commit"
+          git commit -m "Add newfile.txt via workflow from repo1"
         working-directory: repo2
 
-      - name: Push changes to new branch in repo2
+      - name: Push changes to new branch
         run: |
-          git checkout -b repo1-update-branch
+          git fetch origin repo1-update-branch || true   
+          git checkout -B repo1-update-branch origin/repo1-update-branch || git checkout -b repo1-update-branch
           git push origin repo1-update-branch --force-with-lease
         working-directory: repo2
 
@@ -44,5 +45,4 @@ jobs:
           repository: "sumabdamd/repo2"
           title: "Automated PR from repo1"
           body: "This PR contains changes made by repo1."
-          head: repo1-update-branch
-          base: main
+          branch: "repo1-update-branch"
