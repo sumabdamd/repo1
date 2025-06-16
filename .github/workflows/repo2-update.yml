@@ -33,12 +33,15 @@ jobs:
         run: |
           git clone https://x-access-token:${{ secrets.REPO2_ACCESS_TOKEN }}@github.com/sumabdamd/repo2.git
           cd repo2
-          git checkout -b repo1-update-branch
-          # Copy your updated files into this repo2 directory
-          # e.g., cp -r ../repo1/updated_files/* .
+          git checkout -B repo1-update-branch
+      
+          # TODO: Copy updated files here
+          # cp -r ../path-to-updates/* .
+      
           git add .
-          git commit -m "Automated update from repo1"
-          git push origin repo1-update-branch
+          git diff --cached --quiet || git commit -m "Automated update from repo1"
+          git push origin repo1-update-branch --force
+
 
       - name: Create Pull Request with gh CLI
         env:
