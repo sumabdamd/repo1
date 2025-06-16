@@ -24,7 +24,9 @@ jobs:
           echo "New content added workflow" > repo2/n.txt
       - name: Set up PR branch name
         id: pr_branch
-        run: echo "BRANCH_NAME=repo1-update-$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV
+        run: |
+          export TZ=Asia/Kolkata
+          echo "BRANCH_NAME=repo1-update-$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV
 
       - name: Commit and Push Changes to Repo2
         run: |
