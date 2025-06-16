@@ -48,5 +48,5 @@ jobs:
             --base main \
             --head $BRANCH_NAME
 
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
