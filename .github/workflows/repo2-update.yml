@@ -22,13 +22,17 @@ jobs:
       - name: Modify or Add a File in repo2
         run: |
           echo "New content added workflow" > repo2/n.txt
+      - name: Set up PR branch name
+        id: pr_branch
+        run: echo "BRANCH_NAME=repo1-update-$(date +%s)" >> $GITHUB_ENV
+
       - name: Commit and Push Changes to Repo2
         run: |
           cd repo2
-          git checkout -B repo1-update-branch
+          git checkout -b $BRANCH_NAME
           git add .
           git diff --cached --quiet || git commit -m "Automated update from repo1"
-          git push origin repo1-update-branch --force
+          git push origin $BRANCH_NAME
         env:
           GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
 
@@ -36,15 +40,15 @@ jobs:
         run: |
           cd repo2
           git fetch origin main
-          if ! git diff --quiet origin/main...repo1-update-branch; then
+          if ! git diff --quiet origin/main...$BRANCH_NAME; then
             gh pr create \
               --title "Automated PR from repo1" \
               --body "This PR contains changes made by repo1." \
-              --head repo1-update-branch \
+              --head $BRANCH_NAME \
               --base main \
               --repo sumabdamd/repo2
           else
-            echo "No changes between repo1-update-branch and main. Skipping PR creation."
+            echo "No changes between $BRANCH_NAME and main. Skipping PR creation."
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
