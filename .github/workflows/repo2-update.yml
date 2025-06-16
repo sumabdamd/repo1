@@ -40,15 +40,29 @@ jobs:
         run: |
           cd repo2
           git fetch origin main
-          if ! git diff --quiet origin/main...$BRANCH_NAME; then
-            gh pr create \
-              --title "Automated PR from repo1" \
-              --body "This PR contains changes made by repo1." \
-              --head $BRANCH_NAME \
-              --base main \
-              --repo sumabdamd/repo2
-          else
-            echo "No changes between $BRANCH_NAME and main. Skipping PR creation."
-          fi
+          git diff --quiet origin/main...$BRANCH_NAME || gh pr create \
+            --title "Automated PR from repo1" \
+            --body "This PR contains changes made by repo1." \
+            --head $BRANCH_NAME \
+            --base main \
+            --repo sumabdamd/repo2
         env:
           GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
+
+
+      # - name: Create Pull Request with gh CLI
+      #   run: |
+      #     cd repo2
+      #     git fetch origin main
+      #     if ! git diff --quiet origin/main...$BRANCH_NAME; then
+      #       gh pr create \
+      #         --title "Automated PR from repo1" \
+      #         --body "This PR contains changes made by repo1." \
+      #         --head $BRANCH_NAME \
+      #         --base main \
+      #         --repo sumabdamd/repo2
+      #     else
+      #       echo "No changes between $BRANCH_NAME and main. Skipping PR creation."
+      #     fi
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
