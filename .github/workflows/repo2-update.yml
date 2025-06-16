@@ -2,7 +2,7 @@ name: Update the file in repository2 and Submit PR
 on:
   push:
     branches:
-      - main  
+      - main 
 
 jobs:
   update-repo2:
