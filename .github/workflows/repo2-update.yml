@@ -24,14 +24,14 @@ jobs:
           echo "New content added workflow" > repo2/n.txt
       - name: Set up PR branch name
         id: pr_branch
-        run: echo "BRANCH_NAME=repo1-update-$(date +%s)" >> $GITHUB_ENV
+        run: echo "BRANCH_NAME=repo1-update-$(date +"%Y-%m-%d-%H-%M-%S")" >> $GITHUB_ENV
 
       - name: Commit and Push Changes to Repo2
         run: |
           cd repo2
           git checkout -b $BRANCH_NAME
           git add .
-          git diff --cached --quiet || git commit -m "Automated update from repo1"
+          git commit -m "Automated update from repo1"
           git push origin $BRANCH_NAME
         env:
           GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
