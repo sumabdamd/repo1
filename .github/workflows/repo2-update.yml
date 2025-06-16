@@ -47,9 +47,9 @@ jobs:
           #   --body "This PR adds a new file." \
           #   --base main \
           #   --head $BRANCH_NAME
-          gh pr create 
-            --title "Automated PR: Add new file" 
-            --body "This PR adds a new file." 
+          gh pr create \
+            --title "Automated PR: Add new file" \
+            --body "This PR adds a new file." \
             --base main \
             --head $BRANCH_NAME
         env:
