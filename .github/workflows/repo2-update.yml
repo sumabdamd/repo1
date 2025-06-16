@@ -20,7 +20,7 @@ jobs:
           
       - name: Modify or Add a File in repo2
         run: |
-          echo "New content added  workflow" > n.txt
+          echo "New content added  workflow" > repo2/n.txt
         
       - name: Set up Git
         run: |
