@@ -20,21 +20,34 @@ jobs:
           
       - name: Modify or Add a File in repo2
         run: |
-          echo "New content added  workflow" > newfile.txt
+          echo "New content added  workflow" > n.txt
         
-      - name: Commit and Push Changes
+      - name: Set up Git
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
+      
+      - name: Push Changes to Repo2
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
+        run: |
+          git clone https://x-access-token:${{ secrets.REPO2_ACCESS_TOKEN }}@github.com/sumabdamd/repo2.git
+          cd repo2
+          git checkout -b repo1-update-branch
+          # Copy your updated files into this repo2 directory
+          # e.g., cp -r ../repo1/updated_files/* .
           git add .
           git commit -m "Automated update from repo1"
-          git push origin main
+          git push origin repo1-update-branch
 
-      - name: Create Pull Request in Repo2
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          repository: "sumabdamd/repo2"
-          title: "Automated PR from repo1"
-          body: "This PR contains changes made by repo1."
-          branch: "repo1-update-branch"
+      - name: Create Pull Request with gh CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
+        run: |
+          cd repo2
+          gh pr create \
+            --title "Automated PR from repo1" \
+            --body "This PR contains changes made by repo1." \
+            --head repo1-update-branch \
+            --base main \
+            --repo sumabdamd/repo2
