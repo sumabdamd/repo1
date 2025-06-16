@@ -42,12 +42,6 @@ jobs:
         run: |
           cd repo2
           git fetch origin main
-          # git diff --quiet origin/main...$BRANCH_NAME || gh pr create \
-          #   --title "Automated PR from repo1" \
-          #   --body "This PR contains changes made by repo1." \
-          #   --head $BRANCH_NAME \
-          #   --base main \
-          #   --repo sumabdamd/repo2
           git diff --quiet origin/main...$BRANCH_NAME || gh pr create \
             --title "Automated PR: Add new file" \
             --body "This PR adds a new file." \
