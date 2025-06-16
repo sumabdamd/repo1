@@ -33,11 +33,7 @@ jobs:
         run: |
           git clone https://x-access-token:${{ secrets.REPO2_ACCESS_TOKEN }}@github.com/sumabdamd/repo2.git
           cd repo2
-          git checkout -B repo1-update-branch
-      
-          # TODO: Copy updated files here
-          # cp -r ../path-to-updates/* .
-      
+          git checkout -B repo1-update-branch      
           git add .
           git diff --cached --quiet || git commit -m "Automated update from repo1"
           git push origin repo1-update-branch --force
@@ -59,16 +55,3 @@ jobs:
           else
             echo "No changes between repo1-update-branch and main. Skipping PR creation."
           fi
-
-
-      # - name: Create Pull Request with gh CLI
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
-      #   run: |
-      #     cd repo2
-      #     gh pr create \
-      #       --title "Automated PR from repo1" \
-      #       --body "This PR contains changes made by repo1." \
-      #       --head repo1-update-branch \
-      #       --base main \
-      #       --repo sumabdamd/repo2
