@@ -1,8 +1,9 @@
 name: Update the file in repository2 and Submit PR
+
 on:
   push:
     branches:
-      - main 
+      - main
 
 jobs:
   update-repo2:
@@ -12,40 +13,37 @@ jobs:
       - name: Check out repo1
         uses: actions/checkout@v2
 
-      - name: Check out repo2
-        uses: actions/checkout@v2
-        with:
-          repository: "sumabdamd/repo2"
-          token: ${{ secrets.REPO2_ACCESS_TOKEN }}
-          
-      - name: Modify or Add a File in repo2
-        run: |
-          echo "New content added  workflow" > repo2/n.txt
-        
       - name: Set up Git
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-      
-      - name: Push Changes to Repo2
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
+
+      - name: Clone repo2 into subfolder
+        uses: actions/checkout@v2
+        with:
+          repository: "sumabdamd/repo2"
+          token: ${{ secrets.REPO2_ACCESS_TOKEN }}
+          path: repo2  
+
+      - name: Modify or Add a File in repo2
         run: |
-          git clone https://x-access-token:${{ secrets.REPO2_ACCESS_TOKEN }}@github.com/sumabdamd/repo2.git
+          echo "New content added workflow" > repo2/n.txt
+
+      - name: Commit and Push Changes to Repo2
+        run: |
           cd repo2
-          git checkout -B repo1-update-branch      
+          git checkout -B repo1-update-branch
           git add .
           git diff --cached --quiet || git commit -m "Automated update from repo1"
           git push origin repo1-update-branch --force
-
-
-      - name: Create Pull Request with gh CLI
         env:
           GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
+
+      - name: Create Pull Request with gh CLI
         run: |
           cd repo2
-          # Check if there are any changes between main and repo1-update-branch
-          if git fetch origin main && ! git diff --quiet origin/main...repo1-update-branch; then
+          git fetch origin main
+          if ! git diff --quiet origin/main...repo1-update-branch; then
             gh pr create \
               --title "Automated PR from repo1" \
               --body "This PR contains changes made by repo1." \
@@ -55,3 +53,5 @@ jobs:
           else
             echo "No changes between repo1-update-branch and main. Skipping PR creation."
           fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO2_ACCESS_TOKEN }}
