@@ -1,34 +1,27 @@
 name: Update the file in repository2 and Submit PR
-
-on:
-  push:
-    branches:
-      - main
-
+on: workflow_dispatch
+  # push:
+  #   branches:
+  #     - main
 jobs:
-  update-repo2:
+  testing:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repo1
         uses: actions/checkout@v2
-
       - name: Set up Git
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-
-      - name: Clone repo2 into subfolder
+      - name: Clone repo2 
         uses: actions/checkout@v2
         with:
           repository: "sumabdamd/repo2"
           token: ${{ secrets.REPO2_ACCESS_TOKEN }}
           path: repo2  
-
       - name: Modify or Add a File in repo2
         run: |
           echo "New content added workflow" > repo2/n.txt
-
       - name: Commit and Push Changes to Repo2
         run: |
           cd repo2
