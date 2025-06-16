@@ -42,9 +42,14 @@ jobs:
         run: |
           cd repo2
           git fetch origin main
-          git diff --quiet origin/main...$BRANCH_NAME || gh pr create \
-            --title "Automated PR: Add new file" \
-            --body "This PR adds a new file." \
+          # git diff --quiet origin/main...$BRANCH_NAME || gh pr create \
+          #   --title "Automated PR: Add new file" \
+          #   --body "This PR adds a new file." \
+          #   --base main \
+          #   --head $BRANCH_NAME
+          gh pr create 
+            --title "Automated PR: Add new file" 
+            --body "This PR adds a new file." 
             --base main \
             --head $BRANCH_NAME
         env:
