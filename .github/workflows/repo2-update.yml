@@ -21,7 +21,7 @@ jobs:
           path: repo2  
       - name: Modify or Add a File in repo2
         run: |
-          echo "New content added workflow" > n.txt
+          echo "New content added workflow" > repo2/n.txt
       - name: Set up PR branch name
         id: pr_branch
         run: echo "BRANCH_NAME=repo1-update-$(date +%s)" >> $GITHUB_ENV
