@@ -6,6 +6,7 @@ on:
       - 'score/check/sample.json'
       - 'score/check/sample1.json'
       - 'score/check/test.json'
+  workflow_dispatch:
 
 jobs:
   check_score_and_create_issue:
