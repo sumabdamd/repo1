@@ -1,0 +1,45 @@
+name: Check Python Score
+
+on:
+  push:
+    paths:
+      - 'score/check/sample.json'
+      - 'score/check/sample1.json'
+      - 'score/check/test.json'
+
+jobs:
+  check_score_and_create_issue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find changed metrics file
+        id: find_file
+        run: |
+          FILE=$(find score/check -type f -name '*.json' | head -n 1)
+          echo "Found file: $FILE"
+          echo "metrics_file=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Read python_score from file
+        id: read_json
+        run: |
+          SCORE=$(jq '.python_score' "${{ steps.find_file.outputs.metrics_file }}")
+          echo "python_score=$SCORE" >> $GITHUB_OUTPU
+
+      - name: Create issue if score < 98
+        if: steps.read_json.outputs.python_score != '' && fromJSON(steps.read_json.outputs.python_score) < 98
+        uses: peter-evans/create-issue@v5
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          title: Python score dropped below 98%
+          body: |
+            The `python_score` in the latest submission is **${{ steps.read_json.outputs.python_score }}%**, which is below the threshold of 98%.
+
+            Please investigate and take appropriate action.
+          labels: |
+            python
+            metrics
