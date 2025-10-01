@@ -1,4 +1,5 @@
 name: Process file score check
+
 on:
   workflow_dispatch:
   workflow_call:
@@ -12,79 +13,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout main repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Find PRs matching "score check details"
-      id: find_prs
-      run: |
-        echo "Fetching PRs with 'score check details'..."
-        PR_NUMBERS=$(gh pr list --repo "$GITHUB_REPOSITORY" --limit 100 --json title,number --jq '.[] | select(.title | test("score check details")) | .number')
-        echo "Raw PR_NUMBERS (possibly multiline):"
-        echo "$PR_NUMBERS"
-        PR_NUMBERS_CLEAN=$(echo "$PR_NUMBERS" | xargs)
-        echo "Cleaned PR_NUMBERS (space-separated): '$PR_NUMBERS_CLEAN'"
-        echo "prs=$PR_NUMBERS_CLEAN" >> "$GITHUB_OUTPUT"
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Find PRs matching "score check details"
+        id: find_prs
+        run: |
+          echo "Fetching PRs with 'score check details' in the title..."
+          PR_NUMBERS=$(gh pr list --repo "$GITHUB_REPOSITORY" --limit 100 --json title,number --jq '.[] | select(.title | test("score check details")) | .number')
+          
+          PR_NUMBERS_CLEAN=$(echo "$PR_NUMBERS" | xargs)  # Convert newline to space-separated
+          echo "Matched PRs: $PR_NUMBERS_CLEAN"
+          echo "prs=$PR_NUMBERS_CLEAN" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Process each PR with debug
-      if: steps.find_prs.outputs.prs != ''
-      run: |
-        mkdir workdir && cd workdir
-
-        for pr_number in ${{ steps.find_prs.outputs.prs }}
-        do
-          echo "========================"
-          echo "Processing PR #$pr_number"
-
-          PR_JSON=$(gh pr view "$pr_number" --json headRefName,headRepository,headRepositoryOwner)
-          echo "PR JSON: $PR_JSON"
-
-          PR_BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
-          PR_REPO=$(echo "$PR_JSON" | jq -r '.headRepository.name')
-          PR_OWNER=$(echo "$PR_JSON" | jq -r '.headRepositoryOwner.login')
-
-          echo "PR branch: $PR_BRANCH"
-          echo "PR repo: $PR_OWNER/$PR_REPO"
-
-          echo "--- Cloning and checking out PR branch ---"
-          git clone "https://github.com/$PR_OWNER/$PR_REPO.git" "$PR_REPO"
-          cd "$PR_REPO"
-          git checkout "$PR_BRANCH" || (echo " Git checkout failed" && exit 1)
-
-          echo "--- Listing files in PR root ---"
-          ls -la .
-
-          if [ ! -f python_score ]; then
-            echo " File 'python_score' not found in root of PR branch."
-            gh pr edit "$pr_number" --add-label "invalid"
-            cd ../..
-            continue
-          fi
-
-          RAW_SCORE=$(cat python_score | tr -d '\n\r[:space:]%')
-          echo "Sanitized RAW_SCORE: '$RAW_SCORE'"
-
-          if ! [[ "$RAW_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-            echo "RAW_SCORE is not a valid number."
-            gh pr edit "$pr_number" --add-label "invalid"
-            cd ../..
-            continue
-          fi
-
-          CMP=$(echo "$RAW_SCORE > 95" | bc -l)
-          echo "Comparison result (RAW_SCORE > 95) is: $CMP"
-
-          if [ "$CMP" -eq 1 ]; then
-            echo " Score $RAW_SCORE > 95 → merging"
-            gh pr merge "$pr_number" --merge --delete-branch || echo " Merge failed"
-          else
-            echo "Score $RAW_SCORE ≤ 95 → labeling invalid"
-            gh pr edit "$pr_number" --add-label "invalid"
-          fi
-
-          cd ../..
-        done
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Process and conditionally merge PRs
+        if: steps.find_prs.outputs.prs != ''
+        run: |
+          for pr_number in ${{ steps.find_prs.outputs.prs }}
+          do
+            echo "----------"
+            echo "Processing PR #$pr_number"
+            # Get branch name of the PR
+            PR_BRANCH=$(gh pr view "$pr_number" --json headRefName --jq '.headRefName')
+            echo "Branch: $PR_BRANCH"
+            # Fetch and checkout the PR branch
+            git fetch origin "$PR_BRANCH"
+            git checkout "$PR_BRANCH"
+            # Check if python_score file exists
+            if [ ! -f python_score ]; then
+              echo " No 'python_score' file found. Labeling PR as invalid."
+              gh pr edit "$pr_number" --add-label "invalid"
+              continue
+            fi
+            # Read the score and sanitize it
+            PYTHON_SCORE=$(cat python_score | tr -d '\n\r[:space:]')
+            echo "Found python_score=$PYTHON_SCORE"
+            # Check if score is a valid number > 95
+            if [[ "$PYTHON_SCORE" =~ ^[0-9]+$ ]] && [ "$PYTHON_SCORE" -gt 95 ]; then
+              echo " Score is acceptable. Merging PR #$pr_number..."
+              gh pr merge "$pr_number" --merge --delete-branch || echo " Merge failed for PR #$pr_number"
+            else
+              echo " Score too low or invalid ($PYTHON_SCORE). Labeling PR as invalid."
+              gh pr edit "$pr_number" --add-label "invalid"
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
