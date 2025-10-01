@@ -1,5 +1,4 @@
 name: Process file score check
-
 on:
   workflow_dispatch:
   workflow_call:
@@ -13,63 +12,76 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout main repository
         uses: actions/checkout@v4
 
       - name: Find PRs matching "score check details"
         id: find_prs
         run: |
-          echo "Fetching PRs with 'score check details' in the title..."
+          echo "Fetching PRs with 'score check details' in title..."
           PR_NUMBERS=$(gh pr list --repo "$GITHUB_REPOSITORY" --limit 100 --json title,number --jq '.[] | select(.title | test("score check details")) | .number')
-          PR_NUMBERS_CLEAN=$(echo "$PR_NUMBERS" | xargs)  # Convert newline to space-separated
+          PR_NUMBERS_CLEAN=$(echo "$PR_NUMBERS" | xargs)
           echo "Matched PRs: $PR_NUMBERS_CLEAN"
           echo "prs=$PR_NUMBERS_CLEAN" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Process and conditionally merge PRs
+      - name: Process each PR
         if: steps.find_prs.outputs.prs != ''
         run: |
+          mkdir workdir
+          cd workdir
+
           for pr_number in ${{ steps.find_prs.outputs.prs }}
           do
             echo "----------"
             echo "Processing PR #$pr_number"
 
-            # Get PR branch name
-            PR_BRANCH=$(gh pr view "$pr_number" --json headRefName --jq '.headRefName')
-            echo "Branch: $PR_BRANCH"
+            # Get PR details
+            PR_JSON=$(gh pr view "$pr_number" --json headRefName,headRepository,headRepositoryOwner)
+            PR_BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
+            PR_REPO=$(echo "$PR_JSON" | jq -r '.headRepository.name')
+            PR_OWNER=$(echo "$PR_JSON" | jq -r '.headRepositoryOwner.login')
 
-            # Fetch and checkout the PR branch
-            git fetch origin "$PR_BRANCH"
+            echo "PR from $PR_OWNER/$PR_REPO, branch: $PR_BRANCH"
+
+            # Clone the PR repo and checkout the PR branch
+            git clone "https://github.com/$PR_OWNER/$PR_REPO.git" "$PR_REPO"
+            cd "$PR_REPO"
             git checkout "$PR_BRANCH"
 
-            # Check if python_score file exists
+            # Read and sanitize python_score
             if [ ! -f python_score ]; then
-              echo "No 'python_score' file found. Labeling PR as invalid."
+              echo " No 'python_score' file. Labeling PR as invalid."
               gh pr edit "$pr_number" --add-label "invalid"
+              cd ..
+              rm -rf "$PR_REPO"
               continue
             fi
 
-            # Read and sanitize the score
             RAW_SCORE=$(cat python_score | tr -d '\n\r[:space:]%')
             echo "Raw score: $RAW_SCORE"
 
-            # Check if score is a valid number
             if ! [[ "$RAW_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
               echo " Invalid score format. Labeling PR as invalid."
               gh pr edit "$pr_number" --add-label "invalid"
+              cd ..
+              rm -rf "$PR_REPO"
               continue
             fi
 
-            # Compare score with 95 using bc for float-safe comparison
-            COMPARE=$(echo "$RAW_SCORE > 95" | bc)
-            if [ "$COMPARE" -eq 1 ]; then
-              echo "Score is $RAW_SCORE (> 95). Merging PR..."
-              gh pr merge "$pr_number" --merge --delete-branch || echo " Merge failed for PR #$pr_number"
+            # Compare with 95 using bc (supports floats)
+            if [ "$(echo "$RAW_SCORE > 95" | bc -l)" -eq 1 ]; then
+              echo " Score $RAW_SCORE is acceptable. Merging PR..."
+              gh pr merge "$pr_number" --merge --delete-branch || echo " Merge failed"
             else
-              echo " Score is $RAW_SCORE (<= 95). Labeling PR as invalid."
+              echo " Score $RAW_SCORE is too low. Labeling PR as invalid."
               gh pr edit "$pr_number" --add-label "invalid"
             fi
+
+            # Clean up
+            cd ..
+            rm -rf "$PR_REPO"
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
