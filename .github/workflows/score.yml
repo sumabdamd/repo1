@@ -12,76 +12,79 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main repository
-        uses: actions/checkout@v4
+    - name: Checkout main repository
+      uses: actions/checkout@v4
 
-      - name: Find PRs matching "score check details"
-        id: find_prs
-        run: |
-          echo "Fetching PRs with 'score check details' in title..."
-          PR_NUMBERS=$(gh pr list --repo "$GITHUB_REPOSITORY" --limit 100 --json title,number --jq '.[] | select(.title | test("score check details")) | .number')
-          PR_NUMBERS_CLEAN=$(echo "$PR_NUMBERS" | xargs)
-          echo "Matched PRs: $PR_NUMBERS_CLEAN"
-          echo "prs=$PR_NUMBERS_CLEAN" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Find PRs matching "score check details"
+      id: find_prs
+      run: |
+        echo "Fetching PRs with 'score check details'..."
+        PR_NUMBERS=$(gh pr list --repo "$GITHUB_REPOSITORY" --limit 100 --json title,number --jq '.[] | select(.title | test("score check details")) | .number')
+        echo "Raw PR_NUMBERS (possibly multiline):"
+        echo "$PR_NUMBERS"
+        PR_NUMBERS_CLEAN=$(echo "$PR_NUMBERS" | xargs)
+        echo "Cleaned PR_NUMBERS (space-separated): '$PR_NUMBERS_CLEAN'"
+        echo "prs=$PR_NUMBERS_CLEAN" >> "$GITHUB_OUTPUT"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Process each PR
-        if: steps.find_prs.outputs.prs != ''
-        run: |
-          mkdir workdir
-          cd workdir
+    - name: Process each PR with debug
+      if: steps.find_prs.outputs.prs != ''
+      run: |
+        mkdir workdir && cd workdir
 
-          for pr_number in ${{ steps.find_prs.outputs.prs }}
-          do
-            echo "----------"
-            echo "Processing PR #$pr_number"
+        for pr_number in ${{ steps.find_prs.outputs.prs }}
+        do
+          echo "========================"
+          echo "Processing PR #$pr_number"
 
-            # Get PR details
-            PR_JSON=$(gh pr view "$pr_number" --json headRefName,headRepository,headRepositoryOwner)
-            PR_BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
-            PR_REPO=$(echo "$PR_JSON" | jq -r '.headRepository.name')
-            PR_OWNER=$(echo "$PR_JSON" | jq -r '.headRepositoryOwner.login')
+          PR_JSON=$(gh pr view "$pr_number" --json headRefName,headRepository,headRepositoryOwner)
+          echo "PR JSON: $PR_JSON"
 
-            echo "PR from $PR_OWNER/$PR_REPO, branch: $PR_BRANCH"
+          PR_BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
+          PR_REPO=$(echo "$PR_JSON" | jq -r '.headRepository.name')
+          PR_OWNER=$(echo "$PR_JSON" | jq -r '.headRepositoryOwner.login')
 
-            # Clone the PR repo and checkout the PR branch
-            git clone "https://github.com/$PR_OWNER/$PR_REPO.git" "$PR_REPO"
-            cd "$PR_REPO"
-            git checkout "$PR_BRANCH"
+          echo "PR branch: $PR_BRANCH"
+          echo "PR repo: $PR_OWNER/$PR_REPO"
 
-            # Read and sanitize python_score
-            if [ ! -f python_score ]; then
-              echo " No 'python_score' file. Labeling PR as invalid."
-              gh pr edit "$pr_number" --add-label "invalid"
-              cd ..
-              rm -rf "$PR_REPO"
-              continue
-            fi
+          echo "--- Cloning and checking out PR branch ---"
+          git clone "https://github.com/$PR_OWNER/$PR_REPO.git" "$PR_REPO"
+          cd "$PR_REPO"
+          git checkout "$PR_BRANCH" || (echo " Git checkout failed" && exit 1)
 
-            RAW_SCORE=$(cat python_score | tr -d '\n\r[:space:]%')
-            echo "Raw score: $RAW_SCORE"
+          echo "--- Listing files in PR root ---"
+          ls -la .
 
-            if ! [[ "$RAW_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-              echo " Invalid score format. Labeling PR as invalid."
-              gh pr edit "$pr_number" --add-label "invalid"
-              cd ..
-              rm -rf "$PR_REPO"
-              continue
-            fi
+          if [ ! -f python_score ]; then
+            echo " File 'python_score' not found in root of PR branch."
+            gh pr edit "$pr_number" --add-label "invalid"
+            cd ../..
+            continue
+          fi
 
-            # Compare with 95 using bc (supports floats)
-            if [ "$(echo "$RAW_SCORE > 95" | bc -l)" -eq 1 ]; then
-              echo " Score $RAW_SCORE is acceptable. Merging PR..."
-              gh pr merge "$pr_number" --merge --delete-branch || echo " Merge failed"
-            else
-              echo " Score $RAW_SCORE is too low. Labeling PR as invalid."
-              gh pr edit "$pr_number" --add-label "invalid"
-            fi
+          RAW_SCORE=$(cat python_score | tr -d '\n\r[:space:]%')
+          echo "Sanitized RAW_SCORE: '$RAW_SCORE'"
 
-            # Clean up
-            cd ..
-            rm -rf "$PR_REPO"
-          done
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if ! [[ "$RAW_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "RAW_SCORE is not a valid number."
+            gh pr edit "$pr_number" --add-label "invalid"
+            cd ../..
+            continue
+          fi
+
+          CMP=$(echo "$RAW_SCORE > 95" | bc -l)
+          echo "Comparison result (RAW_SCORE > 95) is: $CMP"
+
+          if [ "$CMP" -eq 1 ]; then
+            echo " Score $RAW_SCORE > 95 → merging"
+            gh pr merge "$pr_number" --merge --delete-branch || echo " Merge failed"
+          else
+            echo "Score $RAW_SCORE ≤ 95 → labeling invalid"
+            gh pr edit "$pr_number" --add-label "invalid"
+          fi
+
+          cd ../..
+        done
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
