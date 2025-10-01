@@ -1,0 +1,65 @@
+name: Process file awith  score check
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find PRs matching "score check details"
+        id: find_prs
+        run: |
+          echo "Fetching PRs..."
+          PR_NUMBERS=$(gh pr list --repo "$GITHUB_REPOSITORY" --limit 100 --json title,number --jq '.[] | select(.title | test("score check details")) | .number')
+          echo "Matched PRs: $PR_NUMBERS"
+          echo "prs=$PR_NUMBERS" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Process matching PRs
+        if: steps.find_prs.outputs.prs != ''
+        run: |
+          for pr_number in ${{ steps.find_prs.outputs.prs }}
+          do
+            echo "Processing PR #$pr_number..."
+
+            # Fetch PR branch name
+            PR_BRANCH=$(gh pr view "$pr_number" --json headRefName --jq '.headRefName')
+            echo "PR branch: $PR_BRANCH"
+
+            # Fetch PR locally
+            git fetch origin "$PR_BRANCH"
+            git checkout "$PR_BRANCH"
+
+            # Check if python_score file exists
+            if [ ! -f python_score ]; then
+              echo "No python_score file found in PR #$pr_number. Marking as invalid."
+              gh pr edit "$pr_number" --add-label "invalid"
+              continue
+            fi
+
+            # Read the score
+            PYTHON_SCORE=$(cat python_score | tr -d '\n\r ')
+            echo "Found python_score=$PYTHON_SCORE"
+
+            # Check if the score is numeric and more than 95
+            if [[ "$PYTHON_SCORE" =~ ^[0-9]+$ ]] && [ "$PYTHON_SCORE" -gt 95 ]; then
+              echo "Merging PR #$pr_number (score: $PYTHON_SCORE)"
+              gh pr merge "$pr_number" --merge --delete-branch || echo "Failed to merge PR #$pr_number"
+            else
+              echo "Score too low or invalid ($PYTHON_SCORE). Marking PR #$pr_number as invalid."
+              gh pr edit "$pr_number" --add-label "invalid"
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
