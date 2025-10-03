@@ -1,0 +1,42 @@
+name: Check Rate Value in JSON
+on:
+  push:
+    paths:
+      - 'rate/check/*.json'  # Trigger the action only for JSON file changes
+
+jobs:
+  check_rate_value:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Read JSON and check rate value
+        id: check_rate
+        run: |
+          # Install jq to parse JSON
+          sudo apt-get install jq
+          JSON_FILE="rate/check/*.json"
+          
+          # Extract the 'rate' value from the JSON file
+          RATE=$(jq '.rate' $JSON_FILE)
+          
+          # Check if the rate is more than 10
+          if (( $(echo "$RATE > 10" | bc -l) )); then
+            echo "Rate exceeds 10%: $RATE"
+            echo "rate_exceeds=true" >> $GITHUB_ENV
+          else
+            echo "Rate is within limit: $RATE"
+          fi
+
+      - name: Create GitHub Issue if Rate Exceeds 10%
+        if: env.rate_exceeds == 'true'
+        uses: peter-evans/create-issue@v3
+        with:
+          title: "Rate Exceeds 10% in JSON File"
+          body: |
+            The "rate" value in the JSON file exceeds 10%. Please review the changes.
+          labels: "bug"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
