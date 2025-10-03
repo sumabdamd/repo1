@@ -23,9 +23,12 @@ jobs:
           # Extract the 'rate' value from the JSON file
           RATE=$(jq '.rate' $JSON_FILE)
           
-          # Check if the rate is more than 10
-          if (( $(echo "$RATE > 10" | bc -l) )); then
-            echo "Rate exceeds 10%: $RATE"
+          # Use bc for floating-point comparison instead of ((...))
+          RATE_THRESHOLD=10.0
+
+          # Check if the rate exceeds the threshold
+          if (( $(echo "$RATE > $RATE_THRESHOLD" | bc -l) )); then
+            echo "Rate exceeds $RATE_THRESHOLD%: $RATE"
             echo "rate_exceeds=true" >> $GITHUB_ENV
           else
             echo "Rate is within limit: $RATE"
