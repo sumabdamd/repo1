@@ -1,13 +1,13 @@
 name: Check Rate Value in JSON
+
+# Trigger manually via workflow_dispatch
 on:
-  push:
-    paths:
-      - 'rate/check/*.json'  # Trigger the action only for JSON file changes
+  workflow_dispatch:
 
 jobs:
   check_rate_value:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -17,6 +17,8 @@ jobs:
         run: |
           # Install jq to parse JSON
           sudo apt-get install jq
+          
+          # Define the file you want to check (replace with the correct path if needed)
           JSON_FILE="rate/check/*.json"
           
           # Extract the 'rate' value from the JSON file
