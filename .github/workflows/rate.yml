@@ -1,6 +1,5 @@
 name: Check Rate Value in JSON
 
-# Trigger manually via workflow_dispatch
 on:
   workflow_dispatch:
 
@@ -34,11 +33,21 @@ jobs:
 
       - name: Create GitHub Issue if Rate Exceeds 10%
         if: env.rate_exceeds == 'true'
-        uses: peter-evans/create-issue@v3
-        with:
-          title: "Rate Exceeds 10% in JSON File"
-          body: |
-            The "rate" value in the JSON file exceeds 10%. Please review the changes.
-          labels: "bug"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Use GitHub API to create an issue
+          ISSUE_TITLE="Rate Exceeds 10% in JSON File"
+          ISSUE_BODY="The 'rate' value in the JSON file exceeds 10%. Please review the changes."
+          ISSUE_LABEL="bug"
+          
+          # Make the API request to create an issue
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d @- \
+            https://api.github.com/repos/${{ github.repository }}/issues <<EOF
+          {
+            "title": "$ISSUE_TITLE",
+            "body": "$ISSUE_BODY",
+            "labels": ["$ISSUE_LABEL"]
+          }
+          EOF
