@@ -18,6 +18,8 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
     - name: print branch
       run: git branch
+    - name: git add untracked files
+      run: git add `git ls-files --others --exclude-standard --full-name`
 
     - name: Run Python script to generate timestamp
       run: |
