@@ -37,7 +37,7 @@ jobs:
       run: |
         gh pr create -B main -H auto-${{ github.run_id }} --title 'timestamp file' --body 'timestamp file'
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
    
      
