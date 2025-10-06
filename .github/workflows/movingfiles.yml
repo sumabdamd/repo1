@@ -1,4 +1,4 @@
-name: Generate Timestamp 
+name: Generate Timestamp
 on:
   workflow_dispatch:  # This allows manual trigger from GitHub Actions UI
 
@@ -20,33 +20,34 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
+    
     - name: Print current branch
       run: git branch
 
     - name: Run Python script to generate timestamp
       run: |
         python3 $GITHUB_WORKSPACE/scripts/testing/test.py
+    
     - name: git add untracked files
       run: git add `git ls-files --others --exclude-standard --full-name`
+    
     - name: git commit
       run: git commit -am"timestamp"
+    
     - name: Add remote for repo2
       run: |
         git remote add repo2 https://github.com/sumabdamd/repo2.git  # Replace with the URL of repo2
         git fetch repo2
 
+    - name: Authenticate with GitHub CLI using PAT
+      run: gh auth login --with-token <<< "${{ secrets.PAT_TOKEN }}"
+
     - name: Push the branch to repo2
       run: |
         git push repo2 auto-${{ github.run_id }}  # Push the branch to repo2
-
-    - name: Authenticate with GitHub CLI using PAT
-      run: gh auth login --with-token <<< "${{ secrets.PAT_TOKEN }}"
 
     - name: Create Pull Request to repo2 using GitHub CLI
       run: |
         gh pr create -B main -H auto-${{ github.run_id }} --title 'timestamp file' --body 'timestamp file' --repo sumabdamd/repo2
       env:
         GH_TOKEN: ${{ secrets.PAT_TOKEN }}  # Use the PAT for authentication
-
-         
