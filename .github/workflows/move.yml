@@ -1,0 +1,38 @@
+name: Generate Timestamp and Create PR
+
+on:
+  workflow_dispatch:  # This allows manual trigger from GitHub Actions UI
+
+jobs:
+  generate-timestamp-and-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: checkout a branch
+      run: git checkout -b auto-${{ github.run_id }} main
+    - name: git config user github-actions bot
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    - name: print branch
+      run: git branch
+
+    - name: Run Python script to generate timestamp
+      run: |
+        python3 $GITHUB_WORKSPACE/scripts/testing/test.py
+    - name: git commit
+      run: git commit -am"timestamp"
+    - name: git push branch
+      run: git push --set-upstream origin auto-${{ github.run_id }}
+     
+    - name: use gh CLI to submit PR
+      run: |
+        gh pr create -B main -H auto-${{ github.run_id }} --title 'timestamp file' --body 'timestamp file'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+   
+     
+    
