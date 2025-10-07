@@ -7,6 +7,10 @@ on:
         required: true
         default: 'score/check/sample.json'  # You can set a default path, but it's optional
 
+permissions:
+  issues: write  # Allow creating issues
+  contents: read  # Allow reading code for checking files
+
 jobs:
   check-python-score:
     runs-on: ubuntu-latest
@@ -18,7 +22,7 @@ jobs:
       - name: Debug - Output file path
         run: |
           echo "File path received: ${{ github.event.inputs.file_path }}"
-
+          
       - name: Check if the file exists
         run: |
           # Check if the file exists in the specified path
@@ -62,8 +66,13 @@ jobs:
           # Define the GitHub token for authentication
           GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
           
+          # Log the values for debugging
+          echo "Creating GitHub Issue with the following details:"
+          echo "Title: Python Score Below 98%: Action Required"
+          echo "Body: The Python score in the recent metrics submission is below the threshold of 98%. Please investigate the issue. \n\n**Score**: $score"
+          
           # Create an issue using GitHub API if score is less than 98%
-          curl -X POST \
+          response=$(curl -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{
@@ -71,4 +80,15 @@ jobs:
               "body": "The Python score in the recent metrics submission is below the threshold of 98%. Please investigate the issue. \n\n**Score**: '"$score"',
               "labels": ["python-score", "needs-investigation"]
             }' \
-            https://api.github.com/repos/${{ github.repository }}/issues
+            https://api.github.com/repos/${{ github.repository }}/issues)
+
+          # Log the response from the API
+          echo "GitHub API Response: $response"
+
+          # Check if the response contains 'created_at' (indicating the issue was created successfully)
+          if [[ "$response" == *"created_at"* ]]; then
+            echo "Issue created successfully!"
+          else
+            echo "Failed to create an issue. Response: $response"
+            exit 1
+          fi
