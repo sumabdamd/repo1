@@ -1,0 +1,64 @@
+name: Check Python Score and Raise Issue
+on:
+  push:
+    paths:
+     # Trigger workflow on any change to metrics.json file
+      - 'score/check/sample.json'
+      - 'score/check/sample1.json'
+      - 'score/check/test.json'
+  pull_request:
+    paths:
+    # Trigger on PRs that include changes to metrics.json file
+      - 'score/check/sample.json'
+      - 'score/check/sample1.json'
+      - 'score/check/test.json'
+
+jobs:
+  check-rocm-score:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+
+      # - name: Set up Python environment
+      #   run: |
+      #     sudo apt-get install python3-pip
+      #     pip3 install requests
+
+      - name: Read and check rocm_score from metrics.json
+        id: check_score
+        run: |
+          # Read the metrics.json file and extract the rocm_score
+          echo "Reading sample.json..."
+          
+          # Use jq to extract the score from the JSON file
+          score=$(jq '.python_score' sample.json)
+          
+          # Print the score (for debugging)
+          echo "Python score: $score"
+          
+          # Check if the score is less than 98%
+          if (( $(echo "$score < 98" | bc -l) )); then
+            echo "::set-output name=low_score::true"
+          else
+            echo "::set-output name=low_score::false"
+          fi
+
+      - name: Create GitHub Issue if ROCm score is below 98%
+        if: steps.check_score.outputs.low_score == 'true'
+        run: |
+          # Define the GitHub token for authentication
+          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          
+          # Create an issue using GitHub API if score is less than 98%
+          curl -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{
+              "title": "PythonScore Below 98%: Action Required",
+              "body": "The Python score in the recent metrics submission is below the threshold of 98%. Please investigate the issue. \n\n**Score**: '"$score"',
+              "labels": ["python-score", "needs-investigation"]
+            }' \
+            https://api.github.com/repos/${{ github.repository }}/issues
+
