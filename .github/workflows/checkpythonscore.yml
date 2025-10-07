@@ -77,6 +77,7 @@ jobs:
             echo "low_score=true" >> $GITHUB_ENV
           else
             echo "low_score=false" >> $GITHUB_ENV
+          fi
 
       # Step 6: Create GitHub Issue if Python score is below 98%
       - name: Create GitHub Issue if Python score is below 98%
