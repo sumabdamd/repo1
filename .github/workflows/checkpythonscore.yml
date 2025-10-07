@@ -6,7 +6,7 @@ on:
       file_path:
         description: 'Path to the JSON file to check'
         required: true
-        default: 'score/check/sample.json'  # You can set a default path, but it's optional
+        default: 'score/check/sample.json'
 
 permissions:
   issues: write  # Allow creating issues
