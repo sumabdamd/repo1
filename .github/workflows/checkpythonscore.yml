@@ -22,7 +22,7 @@ jobs:
       - name: Debug - Output file path
         run: |
           echo "File path received: ${{ github.event.inputs.file_path }}"
-          
+
       - name: Check if the file exists
         run: |
           # Check if the file exists in the specified path
@@ -50,9 +50,15 @@ jobs:
           # Use jq to extract the score from the selected JSON file
           score=$(jq '.python_score' "$file_path")
           
-          # Print the score (for debugging)
-          echo "Python score from $file_path: $score"
+          # Debugging: Output the score
+          echo "Extracted score from $file_path: $score"
           
+          # Check if the score is valid (non-empty and a number)
+          if [ -z "$score" ] || ! [[ "$score" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Invalid or missing score. Exiting."
+            exit 1
+          fi
+
           # Check if the score is less than 98%
           if (( $(echo "$score < 98" | bc -l) )); then
             echo "low_score=true" >> $GITHUB_ENV
