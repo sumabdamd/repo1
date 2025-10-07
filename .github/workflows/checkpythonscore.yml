@@ -1,17 +1,23 @@
 name: Check Python Score and Raise Issue
 on:
-  push:
-    paths:
-     # Trigger workflow on any change to metrics.json file
-      - 'score/check/sample.json'
-      - 'score/check/sample1.json'
-      - 'score/check/test.json'
-  pull_request:
-    paths:
-    # Trigger on PRs that include changes to metrics.json file
-      - 'score/check/sample.json'
-      - 'score/check/sample1.json'
-      - 'score/check/test.json'
+  workflow_dispatch:
+    inputs:
+      file_path:
+        description: 'Path to the JSON file to check'
+        required: true
+        default: 'score/check/sample.json'
+  # push:
+  #   paths:
+  #    # Trigger workflow on any change to metrics.json file
+  #     - 'score/check/sample.json'
+  #     - 'score/check/sample1.json'
+  #     - 'score/check/test.json'
+  # pull_request:
+    # paths:
+    # # Trigger on PRs that include changes to metrics.json file
+    #   - 'score/check/sample.json'
+    #   - 'score/check/sample1.json'
+    #   - 'score/check/test.json'
 
 jobs:
   check-python-score:
