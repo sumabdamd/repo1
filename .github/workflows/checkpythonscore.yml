@@ -14,29 +14,44 @@ on:
       - 'score/check/test.json'
 
 jobs:
-  check-rocm-score:
+  check-python-score:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout the code
         uses: actions/checkout@v2
 
-      # - name: Set up Python environment
-      #   run: |
-      #     sudo apt-get install python3-pip
-      #     pip3 install requests
+      - name: Get changed file(s)
+        id: get_changed_file
+        run: |
+          # Get the list of changed files from the push or pull request
+          echo "Changed files: ${{ github.event.head_commit.modified }}"
 
-      - name: Read and check rocm_score from metrics.json
+          # Find the file(s) we need to check (assuming only one file is changed)
+          file_path=$(echo "${{ github.event.head_commit.modified }}" | grep -Eo 'score/check/.+\.json' | head -n 1)
+          echo "File to check: $file_path"
+
+          # Output the file path for later use
+          echo "::set-output name=file_path::$file_path"
+
+      - name: Read and check score from JSON file
         id: check_score
         run: |
-          # Read the metrics.json file and extract the rocm_score
-          echo "Reading sample.json..."
+          # Get the file path passed from the previous step
+          file_path="${{ steps.get_changed_file.outputs.file_path }}"
           
-          # Use jq to extract the score from the JSON file
-          score=$(jq '.python_score' sample.json)
+          if [ -z "$file_path" ]; then
+            echo "No valid JSON file found. Exiting."
+            exit 1
+          fi
+          
+          echo "Reading $file_path..."
+          
+          # Use jq to extract the score from the selected JSON file
+          score=$(jq '.python_score' "$file_path")
           
           # Print the score (for debugging)
-          echo "Python score: $score"
+          echo "Python score from $file_path: $score"
           
           # Check if the score is less than 98%
           if (( $(echo "$score < 98" | bc -l) )); then
@@ -61,4 +76,3 @@ jobs:
               "labels": ["python-score", "needs-investigation"]
             }' \
             https://api.github.com/repos/${{ github.repository }}/issues
-
