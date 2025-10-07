@@ -1,4 +1,5 @@
 name: Check Python Score and Raise Issue
+
 on:
   workflow_dispatch:
     inputs:
@@ -16,16 +17,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the code
       - name: Checkout the code
         uses: actions/checkout@v2
 
+      # Step 2: Debug - Output file path
       - name: Debug - Output file path
         run: |
           echo "File path received: ${{ github.event.inputs.file_path }}"
 
+      # Step 3: Install jq (if not already installed)
+      - name: Install jq (if not already installed)
+        run: |
+          sudo apt-get update
+          sudo apt-get install jq
+
+      # Step 4: Check if the file exists
       - name: Check if the file exists
         run: |
-          # Check if the file exists in the specified path
           file_path="${{ github.event.inputs.file_path }}"
           if [ ! -f "$file_path" ]; then
             echo "File not found: $file_path"
@@ -34,10 +43,10 @@ jobs:
             echo "File found: $file_path"
           fi
 
+      # Step 5: Read and check score from the JSON file
       - name: Read and check score from the JSON file
         id: check_score
         run: |
-          # Get the file path passed from the workflow_dispatch input
           file_path="${{ github.event.inputs.file_path }}"
           
           if [ -z "$file_path" ]; then
@@ -47,10 +56,14 @@ jobs:
           
           echo "Reading $file_path..."
           
-          # Use jq to extract the score from the selected JSON file
-          score=$(jq '.python_score' "$file_path")
+          # Try to parse JSON and extract score
+          score=$(jq '.python_score' "$file_path" 2>/dev/null)
           
-          # Debugging: Output the score
+          if [ $? -ne 0 ]; then
+            echo "Error reading or parsing JSON. Exiting."
+            exit 1
+          fi
+          
           echo "Extracted score from $file_path: $score"
           
           # Check if the score is valid (non-empty and a number)
@@ -58,21 +71,20 @@ jobs:
             echo "Invalid or missing score. Exiting."
             exit 1
           fi
-
+          
           # Check if the score is less than 98%
           if (( $(echo "$score < 98" | bc -l) )); then
             echo "low_score=true" >> $GITHUB_ENV
           else
             echo "low_score=false" >> $GITHUB_ENV
-          fi
 
+      # Step 6: Create GitHub Issue if Python score is below 98%
       - name: Create GitHub Issue if Python score is below 98%
         if: env.low_score == 'true'
         run: |
-          # Define the GitHub token for authentication
           GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
           
-          # Log the values for debugging
+          # Log the details
           echo "Creating GitHub Issue with the following details:"
           echo "Title: Python Score Below 98%: Action Required"
           echo "Body: The Python score in the recent metrics submission is below the threshold of 98%. Please investigate the issue. \n\n**Score**: $score"
@@ -83,18 +95,17 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             -d '{
               "title": "Python Score Below 98%: Action Required",
-              "body": "The Python score in the recent metrics submission is below the threshold of 98%. Please investigate the issue. \n\n**Score**: '"$score"',
+              "body": "The Python score in the recent metrics submission is below the threshold of 98%. Please investigate the issue. \n\n**Score**: '"$score"'\n\nThis issue requires investigation and a possible fix.",
               "labels": ["python-score", "needs-investigation"]
             }' \
             https://api.github.com/repos/${{ github.repository }}/issues)
-
+          
           # Log the response from the API
           echo "GitHub API Response: $response"
-
+          
           # Check if the response contains 'created_at' (indicating the issue was created successfully)
           if [[ "$response" == *"created_at"* ]]; then
             echo "Issue created successfully!"
           else
             echo "Failed to create an issue. Response: $response"
             exit 1
-          fi
