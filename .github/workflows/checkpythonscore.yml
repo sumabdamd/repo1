@@ -5,19 +5,7 @@ on:
       file_path:
         description: 'Path to the JSON file to check'
         required: true
-        default: 'score/check/sample.json'
-  # push:
-  #   paths:
-  #    # Trigger workflow on any change to metrics.json file
-  #     - 'score/check/sample.json'
-  #     - 'score/check/sample1.json'
-  #     - 'score/check/test.json'
-  # pull_request:
-    # paths:
-    # # Trigger on PRs that include changes to metrics.json file
-    #   - 'score/check/sample.json'
-    #   - 'score/check/sample1.json'
-    #   - 'score/check/test.json'
+        default: 'score/check/sample.json'  # You can set a default path, but it's optional
 
 jobs:
   check-python-score:
@@ -27,24 +15,26 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v2
 
-      - name: Get changed file(s)
-        id: get_changed_file
+      - name: Debug - Output file path
         run: |
-          # Get the list of changed files from the push or pull request
-          echo "Changed files: ${{ github.event.head_commit.modified }}"
+          echo "File path received: ${{ github.event.inputs.file_path }}"
 
-          # Find the file(s) we need to check (assuming only one file is changed)
-          file_path=$(echo "${{ github.event.head_commit.modified }}" | grep -Eo 'score/check/.+\.json' | head -n 1)
-          echo "File to check: $file_path"
+      - name: Check if the file exists
+        run: |
+          # Check if the file exists in the specified path
+          file_path="${{ github.event.inputs.file_path }}"
+          if [ ! -f "$file_path" ]; then
+            echo "File not found: $file_path"
+            exit 1
+          else
+            echo "File found: $file_path"
+          fi
 
-          # Output the file path for later use
-          echo "::set-output name=file_path::$file_path"
-
-      - name: Read and check score from JSON file
+      - name: Read and check score from the JSON file
         id: check_score
         run: |
-          # Get the file path passed from the previous step
-          file_path="${{ steps.get_changed_file.outputs.file_path }}"
+          # Get the file path passed from the workflow_dispatch input
+          file_path="${{ github.event.inputs.file_path }}"
           
           if [ -z "$file_path" ]; then
             echo "No valid JSON file found. Exiting."
@@ -61,13 +51,13 @@ jobs:
           
           # Check if the score is less than 98%
           if (( $(echo "$score < 98" | bc -l) )); then
-            echo "::set-output name=low_score::true"
+            echo "low_score=true" >> $GITHUB_ENV
           else
-            echo "::set-output name=low_score::false"
+            echo "low_score=false" >> $GITHUB_ENV
           fi
 
-      - name: Create GitHub Issue if ROCm score is below 98%
-        if: steps.check_score.outputs.low_score == 'true'
+      - name: Create GitHub Issue if Python score is below 98%
+        if: env.low_score == 'true'
         run: |
           # Define the GitHub token for authentication
           GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
@@ -77,7 +67,7 @@ jobs:
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{
-              "title": "PythonScore Below 98%: Action Required",
+              "title": "Python Score Below 98%: Action Required",
               "body": "The Python score in the recent metrics submission is below the threshold of 98%. Please investigate the issue. \n\n**Score**: '"$score"',
               "labels": ["python-score", "needs-investigation"]
             }' \
