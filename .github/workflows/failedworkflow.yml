@@ -1,0 +1,27 @@
+name: Monitor Failed Workflows
+
+on:
+  workflow_dispatch:     # manual trigger
+
+jobs:
+  check-failed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up GitHub CLI
+        uses: cli/cli@v2
+
+      - name: List Failed Workflows in Last Hour
+        run: |
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          HOUR_AGO=$(date -u -d "1 hour ago" +%Y-%m-%dT%H:%M:%SZ)
+
+          echo "Checking failed workflows between $HOUR_AGO and $NOW"
+
+          gh run list --limit 100 --status failure --json status,conclusion,startedAt,workflowName,databaseId -q ".[] | select(.startedAt > \"$HOUR_AGO\")" > failed_workflows.json
+
+          cat failed_workflows.json
+
+      - name: Optionally Post to Slack / Email / Dashboard
+        run: |
+          # You could send a message or parse failed_workflows.json here
+          echo "Send alerts or store info"
