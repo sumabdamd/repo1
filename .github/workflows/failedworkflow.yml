@@ -20,7 +20,15 @@ jobs:
 
           echo "Checking failed workflows between $HOUR_AGO and $NOW"
 
-          gh run list --limit 100 --status failure --json status,conclusion,startedAt,workflowName,databaseId \
+          gh run list \
+            --limit 100 \
+            --status failure \
+            --json status,conclusion,startedAt,workflowName,databaseId,htmlUrl \
             -q ".[] | select(.startedAt > \"$HOUR_AGO\")" > failed_workflows.json
 
-          cat failed_workflows.json
+          echo "Failed workflows:"
+          jq -r '.[] | "- \(.workflowName): \(.htmlUrl)"' failed_workflows.json
+
+      - name: Optionally Post to Slack / Email / Dashboard
+        run: |
+          echo "You could send failed_workflows.json content to a webhook or monitoring system"
