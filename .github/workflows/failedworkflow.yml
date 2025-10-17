@@ -23,14 +23,13 @@ jobs:
           echo "Checking failed workflows between $SIX_HOURS_AGO and $NOW"
 
           # Fetch up to 100 failed runs
-          gh run list --limit 100 --status failure --json status,conclusion,startedAt,workflowName,databaseId > failed_workflows.json
+          gh run list --limit 100 --status failure --json status,conclusion,startedAt,workflowName,databaseId 
 
           echo "All failed workflows fetched:"
-          cat failed_workflows.json
-
           echo "Failed workflows started in the last 6 hours:"
           jq --arg SINCE "$SIX_HOURS_AGO" --arg owner "$GH_REPO_OWNER" --arg repo "$GH_REPO_NAME" '
             .[]
             | select(.startedAt > $SINCE)
             | "- \(.workflowName): https://github.com/\($owner)/\($repo)/actions/runs/\(.databaseId)"
-          ' failed_workflows.json
+          '
+
