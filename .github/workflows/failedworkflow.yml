@@ -14,21 +14,9 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
       - name: List Failed Workflows in Last Hour
+        env:
+          GH_REPO_OWNER: ${{ github.repository_owner }}
+          GH_REPO_NAME: ${{ github.event.repository.name }}
         run: |
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           HOUR_AGO=$(date -u -d "1 hour ago" +%Y-%m-%dT%H:%M:%SZ)
-
-          echo "Checking failed workflows between $HOUR_AGO and $NOW"
-
-          gh run list \
-            --limit 100 \
-            --status failure \
-            --json status,conclusion,startedAt,workflowName,databaseId,htmlUrl \
-            -q ".[] | select(.startedAt > \"$HOUR_AGO\")" > failed_workflows.json
-
-          echo "Failed workflows:"
-          jq -r '.[] | "- \(.workflowName): \(.htmlUrl)"' failed_workflows.json
-
-      - name: Optionally Post to Slack / Email / Dashboard
-        run: |
-          echo "You could send failed_workflows.json content to a webhook or monitoring system"
