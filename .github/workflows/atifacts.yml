@@ -1,9 +1,7 @@
-name: Build and Upload Artifacts 
+name: Build and Upload Artifacts
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
